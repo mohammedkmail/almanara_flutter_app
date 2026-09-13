@@ -1,17 +1,34 @@
-# al_manara_system
+# Almanara Flutter App
 
-A new Flutter project.
+تطبيق Flutter لنظام مكتبة المنارة، مربوط بنسخة Grails 7 المعتمدة داخل `backend/library_System-main`.
 
-## Getting Started
+## مهام الأيام 3–5
 
-This project is a starting point for a Flutter application.
+- تسجيل دخول حقيقي باستخدام JSON وJWT، وتخزين آمن واستعادة الجلسة وتسجيل الخروج.
+- جلب الكتب من API وعرضها في الرئيسية وقائمة الكتب، مع البحث والتصنيفات.
+- اختيار كتاب وإرسال حجز عبر POST وعرض نتيجة السيرفر وحجوزات المستخدم.
+- Models وخدمات منفصلة، وحالات التحميل والخطأ والقائمة الفارغة.
 
-A few resources to get you started if this is your first Flutter project:
+## التشغيل
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+اتبع [دليل الربط والتشغيل والاختبارات](docs/API_WEEK_1_AR.md).
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+لتشغيل الباك إند بقاعدة اختبار مستقلة:
+
+```powershell
+./scripts/start-api-test.ps1
+```
+
+ثم في نافذة أخرى:
+
+```powershell
+flutter run -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8081
+```
+
+تسجيل الدخول بحساب التدريب: `ahmad@library.com` وكلمة المرور `123456`.
+
+## النطاق
+
+الحساب والكتب وحجز الكتب مرتبطة بالباك إند. الغرف والعضويات والإشعارات والمبيعات والقراءة الرقمية وإنشاء الحساب ومعظم عمليات الإدارة لا تزال واجهات أولية. إكمال دفع الحجز أو تأكيده وتسليمه يتم من موقع المكتبة أو لدى الموظف.
+
+تسجيل الخروج يحذف التوكن محلياً؛ توكن JWT الصادر ينتهي على السيرفر بعد ساعة ولا يُبطل فورياً. راجع الدليل لإعداد HTTPS وJWT_SECRET عند النشر.

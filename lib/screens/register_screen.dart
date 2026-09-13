@@ -62,7 +62,9 @@ class _RegisterScreenState
       return;
     }
 
-    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('إنشاء الحساب من التطبيق غير متاح حالياً. أنشئ حسابك من موقع المكتبة ثم سجّل الدخول هنا.'),
+    ));
   }
 
   @override

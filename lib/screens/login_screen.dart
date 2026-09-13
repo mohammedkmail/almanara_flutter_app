@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'navigation_screen.dart';
 import 'register_screen.dart';
+import '../models/api_models.dart';
+import '../services/auth_service.dart';
+import '../widgets/api_error_view.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,13 +16,12 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _emailController =
-  TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
 
-  final TextEditingController _passwordController =
-  TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   bool _hidePassword = true;
+  bool _loading = false;
 
   // ألوان التصميم
   static const Color darkTeal = Color(0xFF00373D);
@@ -36,34 +38,47 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
+  Future<void> _login() async {
+    if (_loading) return;
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const MainScreen(),
-      ),
-    );
+    setState(() => _loading = true);
+    try {
+      await AuthService.instance.login(
+        LoginRequest(_emailController.text.trim(), _passwordController.text),
+      );
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              MainScreen(role: AuthService.instance.user.value!.role),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(apiErrorMessage(error))));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   void _openRegister() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const RegisterScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const RegisterScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final double screenHeight =
-        MediaQuery.of(context).size.height;
+    final double screenHeight = MediaQuery.of(context).size.height;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -89,26 +104,22 @@ class _LoginScreenState extends State<LoginScreen> {
             SafeArea(
               child: SingleChildScrollView(
                 keyboardDismissBehavior:
-                ScrollViewKeyboardDismissBehavior.onDrag,
+                    ScrollViewKeyboardDismissBehavior.onDrag,
 
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     minHeight:
-                    screenHeight -
-                        MediaQuery.of(context).padding.top,
+                        screenHeight - MediaQuery.of(context).padding.top,
                   ),
 
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 30,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 30),
 
                     child: Form(
                       key: _formKey,
 
                       child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.stretch,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
 
                         children: [
                           // =========================
@@ -131,9 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
 
                           // المسافة مكان اسم المنارة القديم
-                          SizedBox(
-                            height: screenHeight * 0.22,
-                          ),
+                          SizedBox(height: screenHeight * 0.22),
 
                           // =========================
                           // LOGIN TITLE
@@ -173,11 +182,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: TextFormField(
                               controller: _emailController,
 
-                              keyboardType:
-                              TextInputType.emailAddress,
+                              keyboardType: TextInputType.emailAddress,
 
-                              textInputAction:
-                              TextInputAction.next,
+                              textInputAction: TextInputAction.next,
 
                               textAlign: TextAlign.right,
 
@@ -187,20 +194,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
 
                               decoration: _fieldDecoration(
-                                hintText:
-                                'البريد الإلكتروني',
-                                suffixIcon:
-                                Icons.email_outlined,
+                                hintText: 'اسم المستخدم أو البريد الإلكتروني',
+                                suffixIcon: Icons.email_outlined,
                               ),
 
                               validator: (value) {
-                                if (value == null ||
-                                    value.trim().isEmpty) {
+                                if (value == null || value.trim().isEmpty) {
                                   return 'الرجاء إدخال البريد الإلكتروني';
-                                }
-
-                                if (!value.contains('@')) {
-                                  return 'البريد الإلكتروني غير صحيح';
                                 }
 
                                 return null;
@@ -215,13 +215,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           // =========================
                           _buildFieldShadow(
                             child: TextFormField(
-                              controller:
-                              _passwordController,
+                              controller: _passwordController,
 
                               obscureText: _hidePassword,
 
-                              textInputAction:
-                              TextInputAction.done,
+                              textInputAction: TextInputAction.done,
 
                               textAlign: TextAlign.right,
 
@@ -233,34 +231,27 @@ class _LoginScreenState extends State<LoginScreen> {
                               decoration: InputDecoration(
                                 hintText: 'كلمة المرور',
 
-                                hintStyle:
-                                const TextStyle(
+                                hintStyle: const TextStyle(
                                   color: fieldText,
                                   fontSize: 14,
                                 ),
 
                                 filled: true,
 
-                                fillColor: Colors.white
-                                    .withValues(
-                                  alpha: 0.94,
-                                ),
+                                fillColor: Colors.white.withValues(alpha: 0.94),
 
                                 // العين
                                 prefixIcon: IconButton(
                                   onPressed: () {
                                     setState(() {
-                                      _hidePassword =
-                                      !_hidePassword;
+                                      _hidePassword = !_hidePassword;
                                     });
                                   },
 
                                   icon: Icon(
                                     _hidePassword
-                                        ? Icons
-                                        .visibility_outlined
-                                        : Icons
-                                        .visibility_off_outlined,
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
 
                                     color: darkTeal,
                                     size: 23,
@@ -268,77 +259,49 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
 
                                 // القفل
-                                suffixIcon:
-                                const Icon(
+                                suffixIcon: const Icon(
                                   Icons.lock_outline,
                                   color: darkTeal,
                                   size: 22,
                                 ),
 
-                                contentPadding:
-                                const EdgeInsets
-                                    .symmetric(
+                                contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 18,
                                   vertical: 18,
                                 ),
 
-                                border:
-                                OutlineInputBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(
-                                    14,
-                                  ),
-                                  borderSide:
-                                  BorderSide.none,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide.none,
                                 ),
 
-                                enabledBorder:
-                                OutlineInputBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(
-                                    14,
-                                  ),
-                                  borderSide:
-                                  BorderSide.none,
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide.none,
                                 ),
 
-                                focusedBorder:
-                                OutlineInputBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(
-                                    14,
-                                  ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
 
-                                  borderSide:
-                                  const BorderSide(
+                                  borderSide: const BorderSide(
                                     color: buttonTeal,
                                     width: 1.4,
                                   ),
                                 ),
 
-                                errorBorder:
-                                OutlineInputBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(
-                                    14,
-                                  ),
+                                errorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
 
-                                  borderSide:
-                                  const BorderSide(
+                                  borderSide: const BorderSide(
                                     color: Colors.redAccent,
                                     width: 1,
                                   ),
                                 ),
 
-                                focusedErrorBorder:
-                                OutlineInputBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(
-                                    14,
-                                  ),
+                                focusedErrorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
 
-                                  borderSide:
-                                  const BorderSide(
+                                  borderSide: const BorderSide(
                                     color: Colors.redAccent,
                                     width: 1.2,
                                   ),
@@ -346,13 +309,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
 
                               validator: (value) {
-                                if (value == null ||
-                                    value.isEmpty) {
+                                if (value == null || value.isEmpty) {
                                   return 'الرجاء إدخال كلمة المرور';
-                                }
-
-                                if (value.length < 6) {
-                                  return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
                                 }
 
                                 return null;
@@ -374,36 +332,36 @@ class _LoginScreenState extends State<LoginScreen> {
                             height: 56,
 
                             child: ElevatedButton(
-                              onPressed: _login,
+                              onPressed: _loading ? null : _login,
 
-                              style:
-                              ElevatedButton.styleFrom(
-                                backgroundColor:
-                                buttonTeal,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: buttonTeal,
 
-                                foregroundColor:
-                                Colors.white,
+                                foregroundColor: Colors.white,
 
                                 elevation: 0,
 
-                                shape:
-                                RoundedRectangleBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(
-                                    14,
-                                  ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
                               ),
 
-                              child: const Text(
-                                'تسجيل الدخول',
+                              child: _loading
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'تسجيل الدخول',
 
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight:
-                                  FontWeight.w700,
-                                ),
-                              ),
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                             ),
                           ),
 
@@ -413,40 +371,31 @@ class _LoginScreenState extends State<LoginScreen> {
                           // REGISTER
                           // =========================
                           Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
 
                             children: [
                               const Text(
                                 'ليس لديك حساب؟',
 
                                 style: TextStyle(
-                                  color: Color(
-                                    0xFF536568,
-                                  ),
+                                  color: Color(0xFF536568),
                                   fontSize: 14,
-                                  fontWeight:
-                                  FontWeight.w500,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
 
                               TextButton(
-                                onPressed:
-                                _openRegister,
+                                onPressed: _openRegister,
 
-                                style:
-                                TextButton.styleFrom(
-                                  padding:
-                                  const EdgeInsets
-                                      .symmetric(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
                                     horizontal: 5,
                                   ),
 
                                   minimumSize: Size.zero,
 
                                   tapTargetSize:
-                                  MaterialTapTargetSize
-                                      .shrinkWrap,
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
 
                                 child: const Text(
@@ -455,8 +404,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   style: TextStyle(
                                     color: accentTeal,
                                     fontSize: 14,
-                                    fontWeight:
-                                    FontWeight.w800,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
                               ),
@@ -467,9 +415,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           // QUOTE
                           // مباشرة تحت إنشاء حساب
                           // =========================
-
-
-
                         ],
                       ),
                     ),
@@ -493,27 +438,15 @@ class _LoginScreenState extends State<LoginScreen> {
     return InputDecoration(
       hintText: hintText,
 
-      hintStyle: const TextStyle(
-        color: fieldText,
-        fontSize: 14,
-      ),
+      hintStyle: const TextStyle(color: fieldText, fontSize: 14),
 
       filled: true,
 
-      fillColor: Colors.white.withValues(
-        alpha: 0.94,
-      ),
+      fillColor: Colors.white.withValues(alpha: 0.94),
 
-      suffixIcon: Icon(
-        suffixIcon,
-        color: darkTeal,
-        size: 22,
-      ),
+      suffixIcon: Icon(suffixIcon, color: darkTeal, size: 22),
 
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: 18,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
 
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -528,28 +461,19 @@ class _LoginScreenState extends State<LoginScreen> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
 
-        borderSide: const BorderSide(
-          color: buttonTeal,
-          width: 1.4,
-        ),
+        borderSide: const BorderSide(color: buttonTeal, width: 1.4),
       ),
 
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
 
-        borderSide: const BorderSide(
-          color: Colors.redAccent,
-          width: 1,
-        ),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1),
       ),
 
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
 
-        borderSide: const BorderSide(
-          color: Colors.redAccent,
-          width: 1.2,
-        ),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.2),
       ),
     );
   }
@@ -557,18 +481,14 @@ class _LoginScreenState extends State<LoginScreen> {
   // ==========================================
   // LIGHT SHADOW
   // ==========================================
-  Widget _buildFieldShadow({
-    required Widget child,
-  }) {
+  Widget _buildFieldShadow({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
 
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(
-              alpha: 0.055,
-            ),
+            color: Colors.black.withValues(alpha: 0.055),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

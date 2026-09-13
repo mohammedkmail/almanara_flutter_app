@@ -1,0 +1,443 @@
+---
+grails:
+    profile: web
+    codegen:
+        defaultPackage: librarysystem
+    gorm:
+        reactor:
+            # Whether to translate GORM events into Reactor events
+            # Disabled by default for performance reasons
+            events: false
+
+info:
+    app:
+        name: '@info.app.name@'
+        version: '@info.app.version@'
+        grailsVersion: '@info.app.grailsVersion@'
+
+spring:
+    jmx:
+        unique-names: true
+    main:
+        banner-mode: "off"
+    groovy:
+        template:
+            check-template-location: false
+    devtools:
+        restart:
+            additional-exclude:
+                - '*.gsp'
+                - '**/*.gsp'
+                - '*.gson'
+                - '**/*.gson'
+                - 'logback-spring.xml'
+                - '*.properties'
+
+environments:
+    development:
+        management:
+            endpoints:
+                enabled-by-default: true
+                web:
+                    base-path: '/actuator'
+                    exposure:
+                        include: '*'
+
+    production:
+        management:
+            endpoints:
+                enabled-by-default: false
+
+---
+grails:
+    mime:
+        disable:
+            accept:
+                header:
+                    userAgents:
+                        - Gecko
+                        - WebKit
+                        - Presto
+                        - Trident
+
+        types:
+            all: '*/*'
+            atom: application/atom+xml
+            css: text/css
+            csv: text/csv
+            form: application/x-www-form-urlencoded
+
+            html:
+                - text/html
+                - application/xhtml+xml
+
+            js: text/javascript
+
+            json:
+                - application/json
+                - text/json
+
+            multipartForm: multipart/form-data
+            pdf: application/pdf
+            rss: application/rss+xml
+            text: text/plain
+
+            hal:
+                - application/hal+json
+                - application/hal+xml
+
+            xml:
+                - text/xml
+                - application/xml
+
+    urlmapping:
+        cache:
+            maxsize: 1000
+
+    controllers:
+        defaultScope: singleton
+        upload:
+            # Controllers accept images up to 5 MB; leave request headroom for multipart metadata.
+            maxFileSize: 5242880
+            maxRequestSize: 6291456
+
+    converters:
+        encoding: UTF-8
+
+    views:
+        default:
+            codec: html
+
+        gsp:
+            encoding: UTF-8
+            htmlcodec: xml
+
+            codecs:
+                expression: html
+                scriptlet: html
+                taglib: none
+                staticparts: none
+
+---
+hibernate:
+    cache:
+        queries: false
+        use_second_level_cache: false
+        use_query_cache: false
+
+dataSource:
+    pooled: true
+    jmxExport: true
+
+environments:
+
+    development:
+        dataSource:
+            dbCreate: update
+            driverClassName: com.mysql.cj.jdbc.Driver
+            username: libraryuser
+            password: ''
+            url: jdbc:mysql://localhost:3306/ubs_training?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+
+    test:
+        dataSource:
+            dbCreate: create-drop
+            driverClassName: org.h2.Driver
+            username: sa
+            password: ''
+            url: jdbc:h2:mem:testDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+
+    production:
+        dataSource:
+            dbCreate: none
+            driverClassName: com.mysql.cj.jdbc.Driver
+            username: '${DB_USERNAME:libraryuser}'
+            password: '${DB_PASSWORD:}'
+            url: '${DB_URL:jdbc:mysql://localhost:3306/ubs_training?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}'
+
+            properties:
+                jmxEnabled: true
+                initialSize: 5
+                maxActive: 50
+                minIdle: 5
+                maxIdle: 25
+                maxWait: 10000
+                maxAge: 600000
+                timeBetweenEvictionRunsMillis: 5000
+                minEvictableIdleTimeMillis: 60000
+                validationQuery: SELECT 1
+                validationQueryTimeout: 3
+                validationInterval: 15000
+                testOnBorrow: true
+                testWhileIdle: true
+                testOnReturn: false
+                jdbcInterceptors: ConnectionState
+                defaultTransactionIsolation: 2
+
+---
+# Spring Security Core
+
+grails:
+    plugin:
+        springsecurity:
+
+            userLookup:
+                userDomainClassName: 'librarysystem.User'
+                authorityJoinClassName: 'librarysystem.UserRole'
+
+            authority:
+                className: 'librarysystem.Role'
+
+            controllerAnnotations:
+                staticRules:
+
+                    # =========================
+                    # Public
+                    # =========================
+
+                    - pattern: /
+                      access: ['permitAll']
+
+                    - pattern: /home/**
+                      access: ['permitAll']
+
+                    - pattern: /error
+                      access: ['permitAll']
+
+                    - pattern: /index
+                      access: ['permitAll']
+
+                    - pattern: /index.gsp
+                      access: ['permitAll']
+
+                    - pattern: '/register/**'
+                      access: ['permitAll']
+
+                    - pattern: /shutdown
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /assets/**
+                      access: ['permitAll']
+
+                    - pattern: /**/js/**
+                      access: ['permitAll']
+
+                    - pattern: /**/css/**
+                      access: ['permitAll']
+
+                    - pattern: /**/images/**
+                      access: ['permitAll']
+
+                    - pattern: /**/favicon.ico
+                      access: ['permitAll']
+
+
+                    # =========================
+                    # Book browsing - Public
+                    # =========================
+
+                    - pattern: /book
+                      access: ['permitAll']
+
+                    - pattern: /book/index
+                      access: ['permitAll']
+
+                    - pattern: /book/show/**
+                      access: ['permitAll']
+
+                    - pattern: /book/cover/**
+                      access: ['permitAll']
+
+
+                    # =========================
+                    # Book management - Admin
+                    # =========================
+
+                    - pattern: /book/create
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /book/save
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /book/edit/**
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /book/update/**
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /book/delete/**
+                      access: ['ROLE_ADMIN']
+
+
+                    # =========================
+                    # Category browsing - Public
+                    # =========================
+
+                    - pattern: /category
+                      access: ['permitAll']
+
+                    - pattern: /category/index
+                      access: ['permitAll']
+
+                    - pattern: /category/show/**
+                      access: ['permitAll']
+
+
+                    # =========================
+                    # Category management - Admin
+                    # =========================
+
+                    - pattern: /category/create
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /category/save
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /category/edit/**
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /category/update/**
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /category/delete/**
+                      access: ['ROLE_ADMIN']
+
+
+                    # =========================
+                    # Author browsing - Public
+                    # =========================
+
+                    - pattern: /author
+                      access: ['permitAll']
+
+                    - pattern: /author/index
+                      access: ['permitAll']
+
+                    - pattern: /author/show/**
+                      access: ['permitAll']
+
+
+                    # =========================
+                    # Author management - Admin
+                    # =========================
+
+                    - pattern: /author/create
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /author/save
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /author/edit/**
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /author/update/**
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /author/delete/**
+                      access: ['ROLE_ADMIN']
+
+
+                    # =========================
+                    # Admin-only management
+                    # =========================
+
+                    - pattern: /bookCopy/**
+                      access: ['ROLE_ADMIN']
+
+                    - pattern: /studyRoom/photo/**
+                      access: ['ROLE_USER', 'ROLE_ADMIN']
+
+                    - pattern: /studyRoom/**
+                      access: ['ROLE_ADMIN']
+
+
+                    # =========================
+                    # Borrowing
+                    # =========================
+
+                    - pattern: /borrowing/**
+                      access: ['ROLE_USER', 'ROLE_ADMIN']
+
+
+                    # =========================
+                    # Book reservations
+                    # =========================
+
+                    - pattern: /reservation/**
+                      access: ['ROLE_USER', 'ROLE_ADMIN']
+
+
+                    # =========================
+                    # Membership
+                    # =========================
+
+                    - pattern: /membership/**
+                      access: ['ROLE_USER', 'ROLE_ADMIN']
+
+
+                    # =========================
+                    # Purchases
+                    # =========================
+
+                    - pattern: /purchase/**
+                      access: ['ROLE_USER', 'ROLE_ADMIN']
+
+
+                    # =========================
+                    # Digital library
+                    # =========================
+
+                    - pattern: /digitalAccess/**
+                      access: ['ROLE_USER', 'ROLE_ADMIN']
+
+
+                    # =========================
+                    # Study room reservations
+                    # =========================
+
+                    - pattern: /roomReservation/**
+                      access: ['ROLE_USER', 'ROLE_ADMIN']
+
+
+                    # =========================
+                    # Dashboard
+                    # =========================
+
+                    - pattern: /dashboard
+                      access: ['ROLE_USER', 'ROLE_ADMIN']
+
+                    - pattern: /dashboard/**
+                      access: ['ROLE_USER', 'ROLE_ADMIN']
+
+
+                    # =========================
+                    # REST API
+                    # =========================
+
+                    - pattern: /api/**
+                      access: ['ROLE_USER', 'ROLE_ADMIN']
+
+
+            filterChain:
+                chainMap:
+
+                    - pattern: /assets/**
+                      filters: none
+
+                    - pattern: /**/js/**
+                      filters: none
+
+                    - pattern: /**/css/**
+                      filters: none
+
+                    - pattern: /**/images/**
+                      filters: none
+
+                    - pattern: /**/favicon.ico
+                      filters: none
+
+                    - pattern: /api/**
+                      filters: 'JOINED_FILTERS,-anonymousAuthenticationFilter,-exceptionTranslationFilter,-authenticationProcessingFilter,-securityContextPersistenceFilter,-rememberMeAuthenticationFilter'
+
+                    - pattern: /**
+                      filters: 'JOINED_FILTERS,-restTokenValidationFilter,-restExceptionTranslationFilter'

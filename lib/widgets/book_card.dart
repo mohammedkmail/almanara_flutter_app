@@ -18,7 +18,7 @@ class BookCard extends StatelessWidget {
       margin: const EdgeInsets.only(left: 14),
 
       decoration: BoxDecoration(
-        color: AppTheme.paper,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
 
@@ -28,8 +28,8 @@ class BookCard extends StatelessWidget {
           Container(
             height: 135,
 
-            decoration: const BoxDecoration(
-              color: AppTheme.teal100,
+            decoration: BoxDecoration(
+              color: AppTheme.turquoise.withValues(alpha: 0.12),
               borderRadius: BorderRadius.vertical(
                 top: Radius.circular(20),
               ),
@@ -39,7 +39,7 @@ class BookCard extends StatelessWidget {
               child: Icon(
                 Icons.menu_book_rounded,
                 size: 48,
-                color: AppTheme.teal950,
+                color: AppTheme.darkTeal,
               ),
             ),
           ),
@@ -55,9 +55,9 @@ class BookCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
 
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.ink,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
 
@@ -68,9 +68,9 @@ class BookCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
 
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppTheme.muted,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
