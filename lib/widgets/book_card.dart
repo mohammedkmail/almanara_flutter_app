@@ -5,11 +5,7 @@ class BookCard extends StatelessWidget {
   final String title;
   final String author;
 
-  const BookCard({
-    super.key,
-    required this.title,
-    required this.author,
-  });
+  const BookCard({super.key, required this.title, required this.author});
 
   @override
   Widget build(BuildContext context) {
@@ -30,9 +26,7 @@ class BookCard extends StatelessWidget {
 
             decoration: BoxDecoration(
               color: AppTheme.turquoise.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
 
             child: const Center(

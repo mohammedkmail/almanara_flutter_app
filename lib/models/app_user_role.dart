@@ -1,4 +1,1 @@
-enum AppUserRole {
-  customer,
-  admin,
-}
+enum AppUserRole { customer, admin }

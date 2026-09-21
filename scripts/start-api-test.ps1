@@ -1,3 +1,5 @@
+# TEST ONLY: runs grails.env=test with temporary H2 data on port 8081.
+# Use start-backend-mysql.ps1 for the real website/MySQL data.
 $ErrorActionPreference = 'Stop'
 $projectDir = Split-Path $PSScriptRoot -Parent
 $socketDir = Join-Path $projectDir '.tmp'

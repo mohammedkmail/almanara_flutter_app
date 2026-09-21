@@ -44,7 +44,8 @@ class SampleData {
       title: 'Database Systems',
       author: 'Ramez Elmasri',
       category: 'قواعد بيانات',
-      description: 'مرجع شامل لمفاهيم أنظمة قواعد البيانات والتصميم والاستعلامات.',
+      description:
+          'مرجع شامل لمفاهيم أنظمة قواعد البيانات والتصميم والاستعلامات.',
       isbn: '9780133970777',
       available: true,
       physicalSaleStock: 3,
@@ -73,7 +74,8 @@ class SampleData {
       title: 'Thinking, Fast and Slow',
       author: 'Daniel Kahneman',
       category: 'تطوير ذاتي',
-      description: 'نظرة على طريقتين مختلفتين يعمل بهما التفكير البشري واتخاذ القرار.',
+      description:
+          'نظرة على طريقتين مختلفتين يعمل بهما التفكير البشري واتخاذ القرار.',
       isbn: '9780374533557',
       available: true,
       physicalSaleStock: 2,
@@ -116,7 +118,8 @@ class SampleData {
       title: 'فن اللامبالاة',
       author: 'Mark Manson',
       category: 'تطوير ذاتي',
-      description: 'كتاب يناقش ترتيب الأولويات والتعامل الواقعي مع ضغوط الحياة.',
+      description:
+          'كتاب يناقش ترتيب الأولويات والتعامل الواقعي مع ضغوط الحياة.',
       available: true,
       physicalSaleStock: 7,
       physicalSalePrice: 14,

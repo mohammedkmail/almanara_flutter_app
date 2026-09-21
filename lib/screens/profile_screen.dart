@@ -1,214 +1,230 @@
 import 'package:flutter/material.dart';
 
+import '../models/app_user_role.dart';
+import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_controller.dart';
+import '../widgets/manara_components.dart';
+import 'authors_screen.dart';
+import 'categories_screen.dart';
 import 'membership_screen.dart';
-import '../services/auth_service.dart';
-import '../widgets/api_error_view.dart';
+import 'library_calendar_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  Future<void> _logout(BuildContext context) async {
+    final ok =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('تسجيل الخروج؟'),
+            content: const Text('سيتم حذف رمز الجلسة المحفوظ على هذا الجهاز.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('رجوع'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('تسجيل الخروج'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!ok) return;
+    await NotificationService.instance.unregisterDevice();
+    await AuthService.instance.logout();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-
+    final user = AuthService.instance.user.value;
+    final initial = user?.fullName.trim().isNotEmpty == true
+        ? user!.fullName.trim().characters.first
+        : 'م';
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        body: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-            children: [
-              Text(
-                'حسابي',
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                ),
+        appBar: AppBar(title: const Text('حسابي')),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 32),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.darkTeal,
+                borderRadius: BorderRadius.circular(22),
               ),
-              const SizedBox(height: 22),
-              Row(
+              child: Row(
                 children: [
-                  const CircleAvatar(
-                    radius: 30,
-                    backgroundColor: AppTheme.darkTeal,
+                  CircleAvatar(
+                    radius: 34,
+                    backgroundColor: AppTheme.gold,
                     child: Text(
-                      'H',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                      initial,
+                      style: const TextStyle(
+                        color: AppTheme.darkTeal,
+                        fontSize: 27,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 15),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          AuthService.instance.user.value?.fullName ?? '',
-                          style: TextStyle(
-                            color: colors.onSurface,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
+                          user?.fullName ?? 'مستخدم المنارة',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 4),
                         Text(
-                          AuthService.instance.user.value?.username ?? '',
+                          user?.username ?? '',
                           style: TextStyle(
-                            color: colors.onSurfaceVariant,
+                            color: Colors.white.withValues(alpha: .70),
                             fontSize: 12,
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        ManaraStatusChip(
+                          label: user?.role == AppUserRole.admin
+                              ? 'مدير النظام'
+                              : 'قارئ',
+                          color: AppTheme.gold,
                         ),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 26),
-              _ProfileItem(
-                icon: Icons.card_membership_outlined,
-                title: 'العضوية',
-                subtitle: 'عرض حالة العضوية وخطط الاشتراك',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MembershipScreen(),
-                    ),
-                  );
-                },
-              ),
-              ValueListenableBuilder<ThemeMode>(
-                valueListenable: ThemeController.themeMode,
-                builder: (context, mode, child) {
-                  return _ProfileItem(
-                    icon: mode == ThemeMode.dark
-                        ? Icons.light_mode_outlined
-                        : Icons.dark_mode_outlined,
-                    title: mode == ThemeMode.dark
-                        ? 'الوضع النهاري'
-                        : 'الوضع الداكن',
-                    subtitle: 'تغيير مظهر التطبيق',
-                    onTap: ThemeController.toggleTheme,
-                  );
-                },
-              ),
-              _ProfileItem(
-                icon: Icons.lock_outline,
-                title: 'الأمان',
-                subtitle: 'تغيير كلمة المرور لاحقاً من الحساب',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('سيتم ربط إعدادات الحساب بالـ API لاحقاً'),
-                    ),
-                  );
-                },
-              ),
-              _ProfileItem(
-                icon: Icons.info_outline,
-                title: 'عن المنارة',
-                subtitle: 'نظام إدارة مكتبة وخدمات دراسة',
-                onTap: () {
-                  showAboutDialog(
-                    context: context,
-                    applicationName: 'المنارة',
-                    applicationVersion: '1.0.0',
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  try {
-                    await AuthService.instance.logout();
-                  } catch (error) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(apiErrorMessage(error))),
-                      );
-                    }
-                  }
-                },
-                icon: const Icon(Icons.logout_rounded),
-                label: const Text('تسجيل الخروج'),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'بيانات الحساب من السيرفر. بعض الخدمات الأخرى ما زالت قيد الربط.',
-                style: TextStyle(
-                  color: colors.onSurfaceVariant,
-                  fontSize: 11,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _ProfileItem({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: theme.dividerColor)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppTheme.turquoise),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+            ),
+            const SizedBox(height: 26),
+            const ManaraSectionTitle(
+              title: 'المكتبة والحساب',
+              subtitle: 'اختصارات لصفحات مفيدة وليست مجرد إعدادات عامة.',
+            ),
+            const SizedBox(height: 10),
+            _ProfileTile(
+              icon: Icons.workspace_premium_outlined,
+              title: 'العضوية',
+              subtitle: 'الفترة والمزايا والسجل والتجديد',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MembershipScreen()),
               ),
             ),
-            Icon(
-              Icons.chevron_left_rounded,
-              color: theme.colorScheme.onSurfaceVariant,
+            _ProfileTile(
+              icon: Icons.category_outlined,
+              title: 'أقسام المكتبة',
+              subtitle: 'تصفح الكتب حسب الاهتمام',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+              ),
+            ),
+            _ProfileTile(
+              icon: Icons.people_alt_outlined,
+              title: 'المؤلفون',
+              subtitle: 'تعرف على المؤلفين وكتبهم',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AuthorsScreen()),
+              ),
+            ),
+            _ProfileTile(
+              icon: Icons.calendar_month_outlined,
+              title: 'تقويم المكتبة',
+              subtitle: 'العطل ومواعيد الإغلاق القادمة',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const LibraryCalendarScreen(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            const ManaraSectionTitle(title: 'تفضيلات التطبيق'),
+            const SizedBox(height: 10),
+            ValueListenableBuilder<ThemeMode>(
+              valueListenable: ThemeController.themeMode,
+              builder: (context, mode, _) => _ProfileTile(
+                icon: mode == ThemeMode.dark
+                    ? Icons.dark_mode_outlined
+                    : Icons.light_mode_outlined,
+                title: 'المظهر',
+                subtitle: mode == ThemeMode.dark
+                    ? 'الوضع الداكن'
+                    : 'الوضع الفاتح',
+                onTap: ThemeController.toggleTheme,
+                trailing: Switch(
+                  value: mode == ThemeMode.dark,
+                  onChanged: (_) => ThemeController.toggleTheme(),
+                ),
+              ),
+            ),
+            _ProfileTile(
+              icon: Icons.notifications_active_outlined,
+              title: 'إشعارات Firebase',
+              subtitle: NotificationService.instance.initialized
+                  ? 'الخدمة مهيأة على هذا الجهاز'
+                  : 'الكود جاهز؛ التفعيل النهائي يحتاج بيانات Firebase',
+              onTap: null,
+            ),
+            const SizedBox(height: 22),
+            OutlinedButton.icon(
+              onPressed: () => _logout(context),
+              icon: const Icon(Icons.logout_rounded),
+              label: const Text('تسجيل الخروج'),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _ProfileTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+  final Widget? trailing;
+  const _ProfileTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) => Card(
+    margin: const EdgeInsets.only(bottom: 9),
+    child: ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      onTap: onTap,
+      leading: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE7F1EE),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: AppTheme.teal),
+      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+      subtitle: Text(subtitle),
+      trailing:
+          trailing ??
+          (onTap == null ? null : const Icon(Icons.chevron_left_rounded)),
+    ),
+  );
 }

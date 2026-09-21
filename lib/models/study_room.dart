@@ -1,6 +1,10 @@
+import '../services/api_config.dart';
+
 class StudyRoom {
   final int? id;
+  final String roomNumber;
   final String name;
+  final String description;
   final String location;
   final int capacity;
   final double hourlyPrice;
@@ -10,7 +14,9 @@ class StudyRoom {
 
   const StudyRoom({
     this.id,
+    this.roomNumber = '',
     required this.name,
+    this.description = '',
     required this.location,
     required this.capacity,
     required this.hourlyPrice,
@@ -20,23 +26,34 @@ class StudyRoom {
   });
 
   factory StudyRoom.fromJson(Map<String, dynamic> json) {
-    final dynamic featuresValue = json['features'];
+    int readInt(dynamic value) =>
+        value is num ? value.toInt() : int.tryParse('$value') ?? 0;
+    double readDouble(dynamic value) =>
+        value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
+
+    final rawFeatures = json['features'];
+    final features = rawFeatures is List
+        ? rawFeatures
+              .map((e) => e.toString())
+              .where((e) => e.isNotEmpty)
+              .toList()
+        : (rawFeatures?.toString() ?? '')
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
 
     return StudyRoom(
-      id: json['id'] is int ? json['id'] as int : int.tryParse('${json['id'] ?? ''}'),
+      id: json['id'] == null ? null : readInt(json['id']),
+      roomNumber: (json['roomNumber'] ?? '').toString(),
       name: (json['name'] ?? '').toString(),
+      description: (json['description'] ?? '').toString(),
       location: (json['location'] ?? '').toString(),
-      capacity: json['capacity'] is int
-          ? json['capacity'] as int
-          : int.tryParse('${json['capacity'] ?? 0}') ?? 0,
-      hourlyPrice: json['hourlyPrice'] is num
-          ? (json['hourlyPrice'] as num).toDouble()
-          : double.tryParse('${json['hourlyPrice'] ?? 0}') ?? 0,
-      available: json['available'] == true || json['status'] == 'AVAILABLE',
-      features: featuresValue is List
-          ? featuresValue.map((item) => item.toString()).toList()
-          : const [],
-      imageUrl: json['imageUrl']?.toString(),
+      capacity: readInt(json['capacity']),
+      hourlyPrice: readDouble(json['hourlyPrice']),
+      available: json['active'] == true || json['available'] == true,
+      features: features,
+      imageUrl: ApiConfig.resourceUrl(json['imageUrl']?.toString()),
     );
   }
 }

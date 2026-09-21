@@ -1,96 +1,164 @@
-# ربط المنارة — الأيام 3 إلى 5
+# ربط المنارة — Week 1
 
-النسخة المعتمدة مستخرجة من `library_System-main (6).zip` داخل
-`backend/library_System-main`. تعديلات الباك إند موجودة في هذه النسخة؛ تشغيل نسخة ZIP الأصلية وحدها لا يوفّر مسارات الحجز والتوكن الجديدة.
+## الهدف النهائي
 
-## المنفّذ
+تطبيق Flutter وموقع المكتبة لا يملكان قاعدتي بيانات منفصلتين. كلاهما يتعامل مع **نفس Grails LibrarySystem ونفس MySQL**:
 
-- `Dio` لإرسال HTTP/JSON مع مهلة اتصال ورسائل أخطاء عربية.
-- GET الكتب وصفحات النتائج، بيانات الحساب، وحجوزات المستخدم.
-- POST تسجيل الدخول وحجز كتاب، مع Request/Response Models.
-- فصل الاتصال في `services/` والموديلات في `models/` عن الشاشات.
-- تحميل، إعادة محاولة، وقوائم فارغة، ومنع إرسال الحجز المتكرر أثناء الطلب.
-- JWT من Spring Security REST، تخزين آمن بواسطة `flutter_secure_storage`، استعادة الجلسة وفحصها عبر `/api/me`، وتوجيه المستخدم حسب الدور.
-- تسجيل الخروج يحذف التوكن من الجهاز. JWT المصدّر يبقى صالحاً في السيرفر حتى انتهاء مدته (ساعة)؛ لا توجد قائمة إبطال فورية. التطبيق لا يخزّن refresh token ولا كلمة المرور.
+```text
+                 ┌── Website / GSP
+                 │
+MySQL ← Grails LibrarySystem
+                 │
+                 └── REST API ← Flutter
+```
 
-## تشغيل اختبار مستقل
+المسارات الجديدة للـ mobile API مضافة إلى نفس مشروع الويب، لذلك قواعد العمل الموجودة في Services تبقى هي المرجع الوحيد.
 
-من جذر مشروع Flutter، في PowerShell:
+## ما تم تنفيذه
+
+- `Dio` لإرسال HTTP/JSON.
+- GET الكتب من قاعدة MySQL الحقيقية.
+- POST حجز كتاب.
+- Models للـ request/response و JSON serialization/deserialization.
+- فصل الـ UI عن منطق API في `services/`.
+- Loading / error / empty states.
+- Login API عبر Spring Security REST وJWT.
+- حفظ التوكن بواسطة `flutter_secure_storage`.
+- `/api/me` لاستعادة الجلسة والتأكد من صلاحية التوكن.
+- Role-based navigation للمستخدم والإدارة.
+- Logout يحذف التوكن من الجهاز.
+
+## التشغيل الحقيقي — MySQL
+
+من جذر Flutter:
+
+```powershell
+./scripts/start-backend-mysql.ps1
+```
+
+السكريبت يشغّل Grails في:
+
+```text
+grails.env=development
+port=8080
+```
+
+وفي `grails-app/conf/application.yml` بيئة development تستخدم قاعدة:
+
+```text
+ubs_training
+```
+
+لذلك أي كتاب/حجز يظهر في الموقع أو يُضاف من نفس النظام يكون في نفس قاعدة البيانات التي يقرأ منها Flutter.
+
+ثم شغّل Flutter:
+
+```powershell
+flutter pub get
+flutter run -d emulator-5554
+```
+
+العنوان الافتراضي في Flutter:
+
+```text
+http://10.0.2.2:8080
+```
+
+`10.0.2.2` هو localhost للكمبيوتر من داخل Android Emulator.
+
+## استخدام Tomcat بدلاً من bootRun
+
+إذا كان الموقع منشوراً على Tomcat تحت:
+
+```text
+http://localhost:8080/LibrarySystem
+```
+
+ابنِ WAR من **هذه النسخة المدمجة** لأنها تحتوي API/JWT:
+
+```powershell
+./scripts/build-backend-war.ps1
+```
+
+بعد نشره، شغّل Flutter:
+
+```powershell
+flutter run -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8080/LibrarySystem
+```
+
+## لماذا كانت البيانات سابقاً مختلفة؟
+
+السكريبت القديم:
 
 ```powershell
 ./scripts/start-api-test.ps1
 ```
 
-هذا يشغّل Grails الحقيقي على المنفذ `8081` بقاعدة H2 مؤقتة وببيانات التدريب الموجودة في BootStrap. لا يستخدم MySQL. تنتهي البيانات بإيقاف العملية.
+يشغّل:
 
-في نافذة أخرى، لتشغيل تطبيق Android:
-
-```powershell
-flutter pub get
-flutter run -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8081
+```text
+grails.env=test
+port=8081
 ```
 
-حساب المستخدم التدريبي: `ahmad@library.com`، كلمة المرور `123456`.
-حساب الإدارة التدريبي: `mohammad@library.com`، كلمة المرور `123456`.
-هذه حسابات BootStrap للاختبار المحلي فقط.
+وبيئة `test` تستخدم H2 مؤقتة وBootStrap، لذلك ظهرت بيانات تدريب مختلفة عن موقع المكتبة. هذا السكريبت بقي للاختبارات فقط.
 
-## تشغيل قاعدة المشروع الأصلية
+## API Contracts
 
-شغّل النسخة المعدلة داخل `backend/library_System-main` باستخدام `gradlew.bat bootRun`.
-إعداد التطوير الحالي يتصل بقاعدة MySQL المسماة `ubs_training` على `localhost:3306`؛ راجع بيانات الاتصال محلياً في `grails-app/conf/application.yml`.
-
-عنوان Flutter الافتراضي `http://10.0.2.2:8081` لمحاكي Android، ويطابق `scripts/start-api-test.ps1`. عند تشغيل نسخة MySQL بـ`bootRun` على 8080 استخدم `--dart-define=API_BASE_URL=http://10.0.2.2:8080`. التشغيل عبر `bootRun` لا يضيف `/LibrarySystem`. إذا نشرته تحت context path، مرّر العنوان الكامل عبر `API_BASE_URL`.
-للهاتف الحقيقي استخدم عنوان الكمبيوتر على الشبكة بدلاً من `10.0.2.2`.
-نسخة Android debug تسمح بـHTTP للتطوير؛ نسخة release تحتاج HTTPS. في production عيّن `JWT_SECRET` عشوائياً بطول 32 حرفاً على الأقل. التطوير يولّد مفتاحاً مؤقتاً؛ إعادة تشغيل السيرفر تُنهي صلاحية توكناته السابقة.
-
-## المسارات والعقود
-
-| الطريقة | المسار | الطلب / النتيجة |
+| Method | Path | Request / Response |
 |---|---|---|
-| POST | `/api/login` | `{username,password}` ← `{access_token,username,roles,...}` |
+| POST | `/api/login` | `{username,password}` → JWT response |
 | GET | `/api/me` | `{id,username,fullName,roles}` |
 | GET | `/api/books?max=100&offset=0` | `{total,max,offset,data:[...]}` |
-| GET | `/api/books/{id}` | كائن كتاب |
-| POST | `/api/reservations` | `{bookId}` ← حجز مع `id,status,feeAmount`، ورمز `201` |
-| GET | `/api/reservations` | `{data:[...]}` لحجوزات صاحب التوكن فقط |
+| GET | `/api/books/{id}` | book object |
+| POST | `/api/reservations` | `{bookId}` → reservation, `201` |
+| GET | `/api/reservations` | current user's reservations |
 
-طلبات API المحمية تحمل `Authorization: Bearer <token>` و`Accept: application/json`.
-الـPOST يرسل `Content-Type: application/json`.
-بيانات المستخدم لا تُقبل من طلب الحجز؛ تؤخذ من هوية التوكن.
+الطلبات المحمية ترسل:
 
-- `200`: نجاح القراءة أو الدخول.
-- `201`: إنشاء الحجز.
-- `400` / `422`: بيانات غير صحيحة.
-- `401`: الدخول مطلوب أو التوكن غير صالح؛ التطبيق يُنهي الجلسة.
-- `403`: الصلاحية غير كافية.
-- `404`: العنصر غير موجود.
-- `409`: تعارض مثل حجز فعّال سابق.
-- `5xx`: فشل في السيرفر، مع رسالة عامة في التطبيق.
-
-الـPUT يعدّل مورداً موجوداً والـDELETE يحذفه. الباك إند يحتوي هاتين العمليتين للكتب بصلاحية الإدارة، لكن نماذج تعديل الإدارة في Flutter ليست ضمن الربط الحالي.
-
-## المسار العملي
-
-تسجيل الدخول ← الكتب ← تفاصيل كتاب ← حجز كتاب للاستعارة ← تأكيد ← نتيجة السيرفر ← مكتبتي.
-حالة `WAITING` تعني انتظار نسخة؛ `READY` تعني تخصيص نسخة وتبقى خطوة الدفع أو التأكيد.
-التطبيق لا يعلن بدء استعارة أو نجاح دفع من مجرد إنشاء حجز. الدفع والتأكيد والتسليم تُكمل عبر موقع المكتبة أو الموظف حالياً.
-
-## حدود هذا التسليم
-
-الربط المنفذ يغطي الحساب والكتب وحجز الكتب. الغرف والعضويات والإشعارات والمبيعات والقراءة الرقمية ومعظم إدارة النظام لا تزال واجهات أولية. إنشاء حساب جديد من Flutter غير مربوط. الإحصائيات غير المربوطة في الرئيسية تعرض شرطة بدلاً من أرقام مزعومة.
-دعم CORS ونشر Flutter Web ليسا ضمن الاختبار الحالي؛ الهدف Android. إعدادات وتخزين iOS/macOS لم تُختبر على أجهزة Apple.
-
-## التحقق
-
-نتيجة التحقق بتاريخ 2026-09-13: بناء Grails ناجح، `flutter analyze` بلا ملاحظات، 9 اختبارات Flutter ناجحة، والاختبار الحي مع Grails/H2 ناجح. نجح أيضاً اختبار Android على `emulator-5554` للدخول وعرض الكتب واستعادة التوكن من التخزين الآمن والخروج. تم إصلاح تجاوز ارتفاع بطاقة الرئيسية الذي كشفه اختبار المحاكي. لم يُختبر الاتصال بقاعدة MySQL الخاصة بالمستخدم.
-
-```powershell
-flutter analyze
-flutter test
-flutter test --dart-define=API_TEST_URL=http://localhost:8081 test/live_backend_test.dart
-flutter test integration_test/backend_flow_test.dart -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8081
+```text
+Authorization: Bearer <token>
+Accept: application/json
 ```
 
-الاختبار الحي ينشئ حجزاً في قاعدة H2، ويتحقق من تكرار الحجز `409`، ورفض الطلب بدون توكن `401`، والدخول الخاطئ، وقائمة الكتب والحجوزات، واستعادة الجلسة والخروج. أعد تشغيل قاعدة الاختبار إذا استُهلكت الكتب المتاحة للحجز بعد تكراره.
+والـ POST يرسل:
 
-المراجع: [Dio](https://pub.dev/packages/dio)، [التخزين الآمن](https://pub.dev/packages/flutter_secure_storage)، [Spring Security REST لـGrails 7](https://apache.github.io/grails-spring-security/7.0.x/guide/index.html).
+```text
+Content-Type: application/json
+```
+
+## أهم Status Codes
+
+- `200` نجاح.
+- `201` تم إنشاء مورد جديد.
+- `400` بيانات الطلب غير صحيحة.
+- `401` Login/Token مطلوب أو غير صالح.
+- `403` المستخدم معروف لكن لا يملك الصلاحية.
+- `404` العنصر غير موجود.
+- `409` تعارض في business state مثل وجود حجز فعال.
+- `422` فشل validation.
+- `5xx` خطأ في السيرفر.
+
+## JWT
+
+`grails-app/conf/application.groovy` يفعّل Spring Security REST JWT. في development يتم إنشاء secret مؤقت عند تشغيل السيرفر، لذلك Restart للسيرفر يلغي التوكنات السابقة. في production يجب تحديد `JWT_SECRET` ثابت وآمن.
+
+## اختبار H2 المعزول
+
+للاختبارات فقط:
+
+```powershell
+./scripts/start-api-test.ps1
+```
+
+ثم يمكن تمرير:
+
+```text
+API_BASE_URL=http://10.0.2.2:8081
+```
+
+لا تعتمد على بيانات H2 عند مقارنة Flutter بالموقع.
+
+## ما لم يتم ربطه بعد
+
+نطاق Week 1 الرئيسي مرتبط: Login + Books + Book Reservation + Session. الشاشات الأخرى مثل الغرف والعضويات والمبيعات والإشعارات والقراءة الرقمية يمكن ربطها في المراحل التالية بنفس نمط `Model → Service → API → UI`.

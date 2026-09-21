@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../books_screen.dart';
+import 'admin_books_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_more_screen.dart';
 import 'admin_operations_screen.dart';
@@ -14,11 +14,11 @@ class AdminMainScreen extends StatefulWidget {
 }
 
 class _AdminMainScreenState extends State<AdminMainScreen> {
-  int currentIndex = 0;
+  int _index = 0;
 
-  final List<Widget> pages = const [
+  static const List<Widget> _pages = <Widget>[
     AdminDashboardScreen(),
-    BooksScreen(),
+    AdminBooksScreen(),
     AdminOperationsScreen(),
     AdminRoomsScreen(),
     AdminMoreScreen(),
@@ -29,33 +29,38 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        body: IndexedStack(index: currentIndex, children: pages),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: currentIndex,
-          onTap: (index) => setState(() => currentIndex = index),
-          items: const [
-            BottomNavigationBarItem(
+        body: _pages[_index],
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: (value) {
+            setState(() {
+              _index = value;
+            });
+          },
+          destinations: const [
+            NavigationDestination(
               icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard_rounded),
+              selectedIcon: Icon(Icons.dashboard_rounded),
               label: 'الرئيسية',
             ),
-            BottomNavigationBarItem(
+            NavigationDestination(
               icon: Icon(Icons.menu_book_outlined),
-              activeIcon: Icon(Icons.menu_book_rounded),
+              selectedIcon: Icon(Icons.menu_book_rounded),
               label: 'الكتب',
             ),
-            BottomNavigationBarItem(
+            NavigationDestination(
               icon: Icon(Icons.receipt_long_outlined),
-              activeIcon: Icon(Icons.receipt_long_rounded),
+              selectedIcon: Icon(Icons.receipt_long_rounded),
               label: 'العمليات',
             ),
-            BottomNavigationBarItem(
+            NavigationDestination(
               icon: Icon(Icons.meeting_room_outlined),
-              activeIcon: Icon(Icons.meeting_room_rounded),
+              selectedIcon: Icon(Icons.meeting_room_rounded),
               label: 'الغرف',
             ),
-            BottomNavigationBarItem(
+            NavigationDestination(
               icon: Icon(Icons.more_horiz_rounded),
+              selectedIcon: Icon(Icons.more_rounded),
               label: 'المزيد',
             ),
           ],

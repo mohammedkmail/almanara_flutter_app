@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'navigation_screen.dart';
-import '../services/auth_service.dart';
-import '../widgets/api_error_view.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,43 +12,98 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  Object? _error;
+  bool _hasError = false;
+
   @override
   void initState() {
     super.initState();
-
     _restore();
   }
 
   Future<void> _restore() async {
-    setState(() => _error = null);
+    setState(() {
+      _hasError = false;
+    });
+
     try {
-      await AuthService.instance.restore();
+      await Future.wait([
+        AuthService.instance.restore(),
+        Future.delayed(const Duration(seconds: 3)),
+      ]);
+
       if (!mounted) return;
+
       final user = AuthService.instance.user.value;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute<void>(
-          builder: (_) =>
-              user == null ? const LoginScreen() : MainScreen(role: user.role),
+          builder: (_) {
+            if (user == null) {
+              return const LoginScreen();
+            }
+
+            return MainScreen(role: user.role);
+          },
         ),
       );
     } catch (error) {
-      if (mounted) setState(() => _error = error);
+      if (!mounted) return;
+
+      setState(() {
+        _hasError = true;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _error != null
-          ? ApiErrorView(error: _error!, retry: _restore)
-          : SizedBox.expand(
-              child: Image.asset(
-                'assets/images/splash_image.png',
-                fit: BoxFit.cover,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset('assets/images/splash_image.png', fit: BoxFit.cover),
+
+          if (_hasError)
+            Container(
+              color: Colors.black.withValues(alpha: 0.35),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: Colors.white,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'تعذر استعادة الجلسة',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: FilledButton(
+                          onPressed: _restore,
+                          child: const Text('إعادة المحاولة'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
+        ],
+      ),
     );
   }
 }
